@@ -42,18 +42,14 @@ int main()
     std::string hash = hashToString(SHA256Bcrypt::hashFile(filepath));
     std::cout << "Hash sent to server: " << hash << "\n";
 
-    uint64_t hashLen = hash.size();
-
     // Sending file metadata including integrity hash
     client.sendBytes((char*)&filesize, sizeof(filesize));
     client.sendBytes((char*)&nameLen, sizeof(nameLen));
-    client.sendBytes((char*)&hashLen, sizeof(hashLen));
     client.sendBytes(filename.c_str(), nameLen);
-    client.sendBytes((char*)hash.c_str(), hashLen);
+    client.sendBytes((char*)hash.c_str(), 64);
 
     std::cout << "filesize:" << filesize << "\n";
     std::cout << "nameLen:" << nameLen << "\n";
-    std::cout << "hashLen:" << hashLen << "\n";
 
     std::cout << filename.c_str() << ": hash -> " << hash.c_str() << "\n";
 

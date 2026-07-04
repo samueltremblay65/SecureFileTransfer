@@ -9,7 +9,6 @@ add_executable(client
     src/Client.cpp
     src/Crypto.cpp
     src/Network.cpp
-    src/FileTransfer.cpp
     src/Utils.cpp
     src/sha256_bcrypt.cpp
 )
@@ -20,7 +19,6 @@ add_executable(server
     src/Server.cpp
     src/Crypto.cpp
     src/Network.cpp
-    src/FileTransfer.cpp
     src/Utils.cpp
     src/sha256_bcrypt.cpp
 )

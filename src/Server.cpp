@@ -28,21 +28,19 @@ int main()
 
     uint64_t filesize = 0;
     uint64_t nameLen = 0;
-    uint64_t hashLen = 0;
 
     std::cout << "Receiving..." <<"\n";
     
     client.recvBytes((char*)&filesize, sizeof(filesize));
     client.recvBytes((char*)&nameLen, sizeof(nameLen));
-    client.recvBytes((char*)&hashLen, sizeof(hashLen));
 
     std::string filename;
     filename.resize(nameLen);
     client.recvBytes(&filename[0], nameLen);
 
     std::string receivedHash;
-    receivedHash.resize(hashLen);
-    client.recvBytes(&receivedHash[0], hashLen);
+    receivedHash.resize(64);
+    client.recvBytes(&receivedHash[0], 64);
 
 
     std::string folderPath = "../../received/";
@@ -69,6 +67,7 @@ int main()
     out.close();
 
     std::cout << "Finished writing to file\n";
+    
     std::cout << "Performing integrity check\n";
 
     auto computedHash = hashToString(SHA256Bcrypt::hashFile(destinationPath));
