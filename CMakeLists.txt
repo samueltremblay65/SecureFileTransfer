@@ -24,3 +24,12 @@ add_executable(server
 )
 
 target_include_directories(server PRIVATE include)
+
+add_executable(crypto_test
+    src/CryptoTest.cpp
+    src/Crypto.cpp
+    src/Utils.cpp
+    src/sha256_bcrypt.cpp
+)
+
+target_include_directories(crypto_test PRIVATE include)

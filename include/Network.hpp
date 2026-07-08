@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
@@ -21,9 +20,12 @@ public:
 
     void send(const std::string& data);
     int sendBytes(const char* data, int size);
+    int sendBytesDebug(const char* data, int size);
 
     std::string recv();
     int recvBytes(char* buffer, int size);
+
+    int recvBytesDebug(char* buffer, int size);
 
     void setHandle(SOCKET s);
 

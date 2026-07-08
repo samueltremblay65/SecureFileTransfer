@@ -75,10 +75,50 @@ int Socket::sendBytes(const char* data, int size)
     while (total < size)
     {
         int sent = ::send(sock, data + total, size - total, 0);
-        std::cout << "Bytes sent: " << sent << "\n";
 
-        if (sent <= 0)
-            return sent;
+        if (sent == SOCKET_ERROR)
+            return SOCKET_ERROR;
+
+        if (sent == 0)
+            return total;
+
+        total += sent;
+    }
+
+    return total;
+}
+
+int Socket::sendBytesDebug(const char* data, int size)
+{
+    int total = 0;
+
+    while (total < size)
+    {
+        int sent = ::send(sock, data + total, size - total, 0);
+
+        if (sent == SOCKET_ERROR)
+        {
+            std::cout << "[send] ERROR: " << WSAGetLastError() << '\n';
+            return SOCKET_ERROR;
+        }
+
+        if (sent == 0)
+        {
+            std::cout << "[send] Connection closed.\n";
+            return total;
+        }
+
+        std::cout << "[send] requested=" << (size - total)
+                  << " sent=" << sent << '\n';
+
+        std::cout << "        data: ";
+
+        for (int i = 0; i < sent; i++)
+        {
+            printf("%02X ", (unsigned char)data[total + i]);
+        }
+
+        std::cout << '\n';
 
         total += sent;
     }
@@ -105,10 +145,49 @@ int Socket::recvBytes(char* buffer, int size)
     {
         int bytes = ::recv(sock, buffer + total, size - total, 0);
 
-        std::cout << "Bytes received: " << bytes << "\n";
+        if (bytes == SOCKET_ERROR)
+            return SOCKET_ERROR;
 
-        if (bytes <= 0)
-            return bytes;
+        if (bytes == 0)
+            return 0;
+
+        total += bytes;
+    }
+
+    return total;
+}
+
+int Socket::recvBytesDebug(char* buffer, int size)
+{
+    int total = 0;
+
+    while (total < size)
+    {
+        int bytes = ::recv(sock, buffer + total, size - total, 0);
+
+        if (bytes == SOCKET_ERROR)
+        {
+            std::cout << "[recv] ERROR: " << WSAGetLastError() << '\n';
+            return SOCKET_ERROR;
+        }
+
+        if (bytes == 0)
+        {
+            std::cout << "[recv] Connection closed.\n";
+            return 0;
+        }
+
+        std::cout << "[recv] requested=" << (size - total)
+                  << " received=" << bytes << '\n';
+
+        std::cout << "        data: ";
+
+        for (int i = 0; i < bytes; i++)
+        {
+            printf("%02X ", (unsigned char)buffer[total + i]);
+        }
+
+        std::cout << '\n';
 
         total += bytes;
     }
