@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <array>
+#include <cstdint>
+
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
@@ -22,10 +25,14 @@ public:
     int sendBytes(const char* data, int size);
     int sendBytesDebug(const char* data, int size);
 
+    int sendNonce(const std::array<uint8_t, 16>& nonce);
+
     std::string recv();
     int recvBytes(char* buffer, int size);
 
     int recvBytesDebug(char* buffer, int size);
+
+    std::array<uint8_t, 16> recvNonce();
 
     void setHandle(SOCKET s);
 

@@ -126,6 +126,12 @@ int Socket::sendBytesDebug(const char* data, int size)
     return total;
 }
 
+int Socket::sendNonce(const std::array<uint8_t, 16>& nonce)
+{
+    return sendBytes(reinterpret_cast<const char*>(nonce.data()),
+                     static_cast<int>(nonce.size()));
+}
+
 std::string Socket::recv()
 {
     char buffer[4096];
@@ -193,6 +199,21 @@ int Socket::recvBytesDebug(char* buffer, int size)
     }
 
     return total;
+}
+
+std::array<uint8_t, 16> Socket::recvNonce()
+{
+    std::array<uint8_t, 16> nonce;
+
+    int received = recvBytes(reinterpret_cast<char*>(nonce.data()),
+                             static_cast<int>(nonce.size()));
+
+    if (received != nonce.size())
+    {
+        throw std::runtime_error("Failed to receive nonce.");
+    }
+
+    return nonce;
 }
 
 void Socket::setHandle(SOCKET s)

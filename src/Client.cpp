@@ -22,6 +22,11 @@ int main()
     client.create();
     client.connect("127.0.0.1", 54000);
 
+    std::array<uint8_t, 16Ui64> nonce = AES256CTR::generateNonce();
+    AES256CTR aes(AES_KEY, nonce);
+
+    client.sendNonce(nonce);
+
     std::string filename = "sample.txt";
     std::string sampleFolderPath = "../../sample/";
     std::string filepath = sampleFolderPath + filename;
@@ -56,8 +61,6 @@ int main()
 
     // Now send file data through a buffer
     char buffer[BUFFER_SIZE];
-
-    AES256CTR aes(AES_KEY, AES_IV);
 
     // file.gcount returns how many bytes were read by the previous read
     // This ensures all bytes get sent, not just full chunks

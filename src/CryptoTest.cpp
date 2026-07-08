@@ -7,17 +7,17 @@ int main()
 {
     std::cout << "Crypto test running\n";
 
-    auto nonce = AES256CTR::generateNonce();
+    std::array<uint8_t, 16Ui64> nonce = AES256CTR::generateNonce();
     AES256CTR aes(AES_KEY, nonce);
 
     std::vector<uint8_t> data = {'H','e','l','l','o'};
 
-    auto encrypted = aes.process(data);
+    std::vector<unsigned char> encrypted = aes.process(data);
 
     std::cout << toHex(encrypted) << "\n";
     std::cout << encrypted.data() << "\n";
 
-    auto decrypted = aes.process(encrypted);
+    std::vector<unsigned char> decrypted = aes.process(encrypted);
 
     std::string result(decrypted.begin(), decrypted.end());
     std::cout << "Decrypted: " << result << "\n";

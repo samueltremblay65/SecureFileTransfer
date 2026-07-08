@@ -28,6 +28,15 @@ int main()
     Socket client;
     client.setHandle(clientSock);
 
+    std::array<uint8_t,16> nonce;
+
+    client.recvBytes(
+        reinterpret_cast<char*>(nonce.data()),
+        nonce.size()
+    );
+
+    AES256CTR aes(AES_KEY, nonce);
+
     uint64_t filesize = 0;
     uint64_t nameLen = 0;
     
@@ -52,11 +61,10 @@ int main()
     std::cout << "Receiving encrypted chunked file data..." <<"\n";
 
     char buffer[BUFFER_SIZE];
-    AES256CTR aes(AES_KEY, AES_IV);
 
     uint64_t remaining = filesize;
 
-    std::cout << "Remaining to receive: " << remaining << "\n";
+    std::cout << "Remaining bytes to receive: " << remaining << "\n";
 
     while (remaining > 0)
     {
@@ -66,23 +74,19 @@ int main()
 
         if (r1 <= 0) break;
 
-        std::cout << "Receiving chunk. Size: " << chunkSize << "\n";
+        std::cout << "Receiving chunk of size: " << chunkSize << " bytes \n";
 
         std::vector<uint8_t> encrypted(chunkSize);
 
         int r2 = client.recvBytes((char*)encrypted.data(), chunkSize);
         if (r2 <= 0) break;
 
-        std::cout << "Encrypted chunk: " << toHex(encrypted) << "\n";
-
         std::vector<uint8_t> decrypted = aes.process(encrypted);
 
         out.write((char*)decrypted.data(), decrypted.size());
 
-        std::cout << "Decrypted chunk: " << decrypted.data() << "\n";
-
         remaining -= decrypted.size();
-        std::cout << "Remaining to receive: " << remaining << "\n";
+        std::cout << "Remaining bytes to receive: " << remaining << "\n";
     }
 
     // Acknowledgement
@@ -95,9 +99,7 @@ int main()
 
     std::cout << "Performing integrity check\n";
 
-    auto computedHash = hashToString(SHA256Bcrypt::hashFile(destinationPath));
-
-    std::cout << "Hash computed by server: " << computedHash << "\n";
+    std::string computedHash = hashToString(SHA256Bcrypt::hashFile(destinationPath));
 
     if (receivedHash == computedHash)
         std::cout << "Integrity: passed\n";
