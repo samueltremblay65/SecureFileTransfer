@@ -11,6 +11,7 @@ add_executable(client
     src/Network.cpp
     src/Utils.cpp
     src/sha256_bcrypt.cpp
+    src/Protocol.cpp
 )
 
 target_include_directories(client PRIVATE include)
@@ -21,6 +22,7 @@ add_executable(server
     src/Network.cpp
     src/Utils.cpp
     src/sha256_bcrypt.cpp
+    src/Protocol.cpp
 )
 
 target_include_directories(server PRIVATE include)

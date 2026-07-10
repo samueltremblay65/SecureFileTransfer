@@ -1,13 +1,18 @@
 #include "Network.hpp"
-#include <winsock2.h>
-#include <iostream>
-#include <fstream>
-#include <string>
+#include "Protocol.hpp"
 #include "sha256_bcrypt.hpp"
 #include "Utils.hpp"
 #include "Crypto.hpp"
 #include "Config.hpp"
+
+#include <winsock2.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
 #pragma comment(lib, "ws2_32.lib")
+
 
 int main()
 {
@@ -15,96 +20,129 @@ int main()
     WSAStartup(MAKEWORD(2,2), &wsa);
 
     Socket server;
+
     server.create();
     server.bind(54000);
     server.listen();
 
-    std::cout << "Server Listening..." << "\n";
+    std::cout << "Server Listening...\n";
 
     SOCKET clientSock = server.acceptClient();
 
-    std::cout << "Connection with Client established" << "\n";
+    std::cout << "Connection with Client established\n";
 
     Socket client;
     client.setHandle(clientSock);
 
-    std::array<uint8_t,16> nonce;
+    uint64_t filesize;
+    std::string filename;
+    std::string receivedHash;
+    std::array<uint8_t, NONCE_SIZE> nonce;
 
-    client.recvBytes(
-        reinterpret_cast<char*>(nonce.data()),
-        nonce.size()
+    recvFileInfo(
+        client,
+        filesize,
+        filename,
+        receivedHash,
+        nonce
     );
 
     AES256CTR aes(AES_KEY, nonce);
 
-    uint64_t filesize = 0;
-    uint64_t nameLen = 0;
-    
-    client.recvBytes((char*)&filesize, sizeof(filesize));
-    client.recvBytes((char*)&nameLen, sizeof(nameLen));
-
-    std::string filename;
-    filename.resize(nameLen);
-    client.recvBytes(&filename[0], nameLen);
-
-    std::string receivedHash;
-    receivedHash.resize(64);
-    client.recvBytes(&receivedHash[0], 64);
-
     std::string folderPath = "../../received/";
     std::string destinationPath = folderPath + filename;
 
-    std::ofstream out(destinationPath, std::ios::binary);
+    std::ofstream out(
+        destinationPath,
+        std::ios::binary
+    );
 
-    std::cout << "Filename: " << filename << ". Received hash: " << receivedHash << "\n";
+    std::cout 
+        << "Filename: "
+        << filename
+        << "\nReceived hash: "
+        << receivedHash
+        << "\n";
 
-    std::cout << "Receiving encrypted chunked file data..." <<"\n";
+    std::cout << "Receiving file...\n";
 
-    char buffer[BUFFER_SIZE];
+    uint64_t receivedBytes = 0;
 
-    uint64_t remaining = filesize;
-
-    std::cout << "Remaining bytes to receive: " << remaining << "\n";
-
-    while (remaining > 0)
+    while (true)
     {
-        uint32_t chunkSize = 0;
+        PacketHeader header = recvPacketHeader(client);
 
-        int r1 = client.recvBytes((char*)&chunkSize, sizeof(chunkSize));
+        if (header.type == PacketType::TransferComplete)
+        {
+            break;
+        }
 
-        if (r1 <= 0) break;
+        if (header.type != PacketType::FileData)
+        {
+            std::cout << "Unexpected packet type\n";
+            break;
+        }
 
-        std::cout << "Receiving chunk of size: " << chunkSize << " bytes \n";
+        uint32_t chunkSize;
+
+        client.recvBytes(
+            reinterpret_cast<char*>(&chunkSize),
+            sizeof(chunkSize)
+        );
 
         std::vector<uint8_t> encrypted(chunkSize);
 
-        int r2 = client.recvBytes((char*)encrypted.data(), chunkSize);
-        if (r2 <= 0) break;
+        client.recvBytes(
+            reinterpret_cast<char*>(encrypted.data()),
+            chunkSize
+        );
 
-        std::vector<uint8_t> decrypted = aes.process(encrypted);
+        std::vector<uint8_t> decrypted =
+            aes.process(encrypted);
 
-        out.write((char*)decrypted.data(), decrypted.size());
+        out.write(
+            reinterpret_cast<char*>(decrypted.data()),
+            decrypted.size()
+        );
 
-        remaining -= decrypted.size();
-        std::cout << "Remaining bytes to receive: " << remaining << "\n";
+        receivedBytes += decrypted.size();
+
+        std::cout
+            << "Received "
+            << receivedBytes
+            << " / "
+            << filesize
+            << " bytes\n";
     }
 
-    // Acknowledgement
-    char ack = 1;
-    client.sendBytes(&ack, sizeof(ack));
 
     out.close();
 
-    std::cout << "Finished writing to file\n";
+
+    std::cout << "Finished writing file\n";
+
 
     std::cout << "Performing integrity check\n";
 
-    std::string computedHash = hashToString(SHA256Bcrypt::hashFile(destinationPath));
+
+    std::string computedHash =
+        hashToString(
+            SHA256Bcrypt::hashFile(destinationPath)
+        );
+
 
     if (receivedHash == computedHash)
+    {
         std::cout << "Integrity: passed\n";
+    }
     else
+    {
         std::cout << "File is corrupted\n";
+    }
+
+
+    sendAck(client);
+
 
     WSACleanup();
 }
