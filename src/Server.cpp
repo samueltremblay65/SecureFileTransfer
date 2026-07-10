@@ -13,7 +13,6 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-
 int main()
 {
     WSADATA wsa;
@@ -34,6 +33,20 @@ int main()
     Socket client;
     client.setHandle(clientSock);
 
+    recvHello(client);
+    sendHelloAck(client);
+
+    ECDHKeyPair keys;
+
+    auto clientPublicKey = recvKeyExchange(client);
+    auto publicKey = keys.getPublicKey();
+
+    sendKeyExchange(client, publicKey);
+
+    auto sharedSecret = keys.deriveSharedSecret(clientPublicKey);
+
+    std::cout << "Shared secret size: " << sharedSecret.size() << "\n";
+
     uint64_t filesize;
     std::string filename;
     std::string receivedHash;
@@ -47,7 +60,8 @@ int main()
         nonce
     );
 
-    AES256CTR aes(AES_KEY, nonce);
+    auto aesKey = deriveAESKey(sharedSecret);
+    AES256CTR aes(aesKey, nonce);
 
     std::string folderPath = "../../received/";
     std::string destinationPath = folderPath + filename;

@@ -8,6 +8,7 @@
 #include <stdexcept>
 #pragma comment(lib, "bcrypt.lib")
 
+std::array<uint8_t, 32> deriveAESKey(const std::vector<uint8_t>& sharedSecret);
 
 class AES256CTR
 {
@@ -35,3 +36,29 @@ private:
 
     std::int32_t counter = 0;
 };
+
+class ECDHKeyPair
+{
+public:
+
+    ECDHKeyPair();
+
+    ~ECDHKeyPair();
+
+    std::vector<uint8_t> getPublicKey() const;
+
+    std::vector<uint8_t> deriveSharedSecret(
+        const std::vector<uint8_t>& peerPublicKey
+    ) const;
+
+private:
+
+    BCRYPT_ALG_HANDLE algorithmHandle = nullptr;
+
+    BCRYPT_KEY_HANDLE privateKey = nullptr;
+};
+
+
+std::array<uint8_t, 32> hkdfSha256(
+    const std::vector<uint8_t>& sharedSecret
+);

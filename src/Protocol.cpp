@@ -41,7 +41,6 @@ void sendFileInfo(
     info.fileSize = fileSize;
     info.fileNameLength = filename.size();
 
-
     uint32_t payloadSize =
         sizeof(FileInfoHeader) +
         filename.size() +
@@ -169,7 +168,6 @@ std::vector<uint8_t> recvFileChunk(Socket& socket)
     return encrypted;
 }
 
-
 void sendTransferComplete(Socket& socket)
 {
     sendPacketHeader(
@@ -178,7 +176,6 @@ void sendTransferComplete(Socket& socket)
         0
     );
 }
-
 
 void sendAck(Socket& socket)
 {
@@ -196,7 +193,6 @@ void sendAck(Socket& socket)
     );
 }
 
-
 void recvAck(Socket& socket)
 {
     PacketHeader header = recvPacketHeader(socket);
@@ -213,4 +209,86 @@ void recvAck(Socket& socket)
 
     if (ack != 1)
         throw std::runtime_error("Transfer failed");
+}
+
+void recvHello(Socket& socket)
+{
+    PacketHeader header = recvPacketHeader(socket);
+
+    if (header.type != PacketType::Hello)
+        throw std::runtime_error("Expected Hello");
+
+    HelloPacket hello;
+
+    socket.recvBytes(
+        reinterpret_cast<char*>(&hello),
+        sizeof(hello));
+
+    if (hello.protocolVersion != PROTOCOL_VERSION)
+        throw std::runtime_error("Unsupported protocol");
+}
+
+void sendHello(Socket& socket)
+{
+    HelloPacket hello;
+
+    hello.protocolVersion = PROTOCOL_VERSION;
+
+    sendPacketHeader(
+        socket,
+        PacketType::Hello,
+        sizeof(HelloPacket));
+
+    socket.sendBytes(
+        reinterpret_cast<char*>(&hello),
+        sizeof(hello));
+}
+
+void sendHelloAck(Socket& socket)
+{
+    sendPacketHeader(
+        socket,
+        PacketType::HelloAck,
+        0);
+}
+
+void recvHelloAck(Socket& socket)
+{
+    PacketHeader header = recvPacketHeader(socket);
+
+    if (header.type != PacketType::HelloAck)
+        throw std::runtime_error("Expected HelloAck");
+}
+
+void sendKeyExchange(Socket& socket, const std::vector<uint8_t>& publicKey)
+{
+    sendPacketHeader(
+        socket,
+        PacketType::KeyExchange,
+        publicKey.size()
+    );
+
+    socket.sendBytes(
+        reinterpret_cast<const char*>(publicKey.data()),
+        publicKey.size()
+    );
+}
+
+std::vector<uint8_t> recvKeyExchange(Socket& socket)
+{
+    PacketHeader header = recvPacketHeader(socket);
+
+    if (header.type != PacketType::KeyExchange)
+        throw std::runtime_error("Expected KeyExchange packet");
+
+    std::vector<uint8_t> publicKey(
+        header.payloadSize
+    );
+
+    socket.recvBytes(
+        reinterpret_cast<char*>(publicKey.data()),
+        publicKey.size()
+    );
+
+    return publicKey;
 }
